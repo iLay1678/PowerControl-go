@@ -66,10 +66,6 @@ cd PowerControl-go
 # 编译并运行
 go mod download
 go build -o powercontrol ./cmd/powercontrol
-
-# 或使用 Docker 构建
-make docker
-make docker-run
 ```
 
 ## 🔧 环境变量
@@ -118,97 +114,6 @@ curl -X POST "http://localhost:7678/device/wol/all?key=admin"
 # 全部关机
 curl -X POST "http://localhost:7678/device/shutdown/all?key=admin"
 ```
-
-完整 API 文档请参考 [YAML.md](YAML.md) 配置说明。
-
-## ⚙️ 配置说明
-
-### 主配置 (`/app/data/main.yaml`)
-
-```yaml
-web:
-  port: 7678
-  key: "admin"
-
-log:
-  level: "INFO"          # DEBUG, INFO, WARN, ERROR
-  keep_days: 7
-
-message:
-  enabled: true
-  webhook:
-    enabled: true
-    url: "https://your-webhook.com"
-    method: "POST"
-    headers:
-      Authorization: "Bearer TOKEN"
-```
-
-### 设备配置 (`/app/data/device_xxx.yaml`)
-
-```yaml
-id: "device_12345678"
-name: "我的电脑"
-alias: "my-pc"
-ip: "192.168.1.100"
-enabled: true
-
-wol:
-  enabled: true
-  mac: "00-11-22-33-44-55"
-  destination: "broadcast_ip_global"
-  port: 9
-
-shutdown:
-  enabled: true
-  method: "ssh"          # ssh, smb, custom
-  account: "username"
-  password: "password"
-  time: 60
-
-ping:
-  enabled: true
-  interval: 60
-
-bemfa:
-  enabled: true
-  uid: "your-bemfa-uid"
-  topic: "device001"
-
-message:
-  enabled: true
-```
-
-详细配置说明请查看 [YAML.md](YAML.md)
-
-## 🔄 从 Python 版本迁移
-
-1. **停止旧容器**
-```bash
-docker stop powercontrol
-docker rm powercontrol
-```
-
-2. **备份数据**（可选）
-```bash
-cp -r /your/data/path /your/data/path.backup
-```
-
-3. **启动新容器**（使用相同的数据目录）
-```bash
-docker run -d \
-  -v /your/data/path:/app/data \
-  -e WEB_PORT=7678 \
-  -e WEB_KEY=admin \
-  --network host \
-  --restart unless-stopped \
-  --name powercontrol \
-  ghcr.io/ilay1678/powercontrol-go:latest
-```
-
-> ✅ **配置文件兼容**: Go 版本可直接读取 Python 版本的配置文件
-> ✅ **API 兼容**: REST API 接口保持一致
-> ✅ **数据迁移**: 使用相同的数据目录即可无缝切换
 
 ## 🛠️ 平台支持
 
