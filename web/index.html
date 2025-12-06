@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerControl - 设备管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { color: #333; font-size: 2em; }
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .devices-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .device-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .device-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+        }
+        .device-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .device-info {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        .device-status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .status-online { background: #10b981; color: white; }
+        .status-offline { background: #ef4444; color: white; }
+        .status-unknown { background: #6b7280; color: white; }
+        .device-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            flex: 1;
+            min-width: 70px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        .btn:hover { transform: scale(1.05); }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-secondary { background: #6b7280; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .login-form {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 100px auto;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 30px;
+            border-radius: 15px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .modal-header h2 {
+            color: #333;
+            font-size: 1.8em;
+        }
+        .close-btn {
+            font-size: 2em;
+            cursor: pointer;
+            color: #6b7280;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .form-section {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .form-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .message.success { background: #d1fae5; color: #065f46; }
+        .message.error { background: #fee2e2; color: #991b1b; }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: white;
+            font-size: 1.5em;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 登录表单 -->
+        <div id="loginForm" class="login-form" style="display: none;">
+            <h2 style="text-align: center; margin-bottom: 30px; color: #333;">PowerControl</h2>
+            <div id="loginMessage" class="message"></div>
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>访问密钥 (KEY)</label>
+                    <input type="password" id="keyInput" placeholder="请输入访问密钥" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
+            </form>
+        </div>
+
+        <!-- 设备列表 -->
+        <div id="devicesList" style="display: none;">
+            <div class="container">
+                <div class="header">
+                    <div>
+                        <h1>🖥️ PowerControl</h1>
+                        <p style="color: #666; margin-top: 5px;">远程设备电源管理系统</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn btn-success" onclick="showAddDevice()">➕ 添加设备</button>
+                        <button class="btn btn-secondary" onclick="logout()">🚪 退出</button>
+                    </div>
+                </div>
+                <div id="message" class="message"></div>
+                <div id="devicesGrid" class="devices-grid"></div>
+            </div>
+        </div>
+
+        <!-- 加载中 -->
+        <div id="loading" class="loading">加载中...</div>
+    </div>
+
+    <!-- 设备配置模态框 -->
+    <div id="deviceModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">设备配置</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modalMessage" class="message"></div>
+            <form id="deviceForm" onsubmit="saveDevice(event)">
+                <!-- 基本信息 -->
+                <div class="form-section">
+                    <h3>📋 基本信息</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>设备名称</label>
+                            <input type="text" id="deviceName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>设备别名</label>
+                            <input type="text" id="deviceAlias" placeholder="用于API调用">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>IP地址</label>
+                        <input type="text" id="deviceIP" required placeholder="192.168.1.100">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="deviceEnabled">
+                        <label for="deviceEnabled" style="margin: 0;">启用设备</label>
+                    </div>
+                </div>
+
+                <!-- 网络唤醒 -->
+                <div class="form-section">
+                    <h3>⚡ 网络唤醒 (WOL)</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="wolEnabled">
+                        <label for="wolEnabled" style="margin: 0;">启用网络唤醒</label>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>MAC地址</label>
+                            <input type="text" id="wolMAC" placeholder="00:11:22:33:44:55">
+                        </div>
+                        <div class="form-group">
+                            <label>端口</label>
+                            <input type="number" id="wolPort" value="9">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>广播方式</label>
+                            <select id="wolDestination">
+                                <option value="broadcast_ip_global">全局广播</option>
+                                <option value="broadcast_ip_subnet">子网广播</option>
+                                <option value="direct_ip">直连设备</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>网卡接口</label>
+                            <input type="text" id="wolInterface" value="default" placeholder="default">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 远程关机 -->
+                <div class="form-section">
+                    <h3>🔌 远程关机</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="shutdownEnabled">
+                        <label for="shutdownEnabled" style="margin: 0;">启用远程关机</label>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>关机方式</label>
+                            <select id="shutdownMethod">
+                                <option value="ssh">SSH</option>
+                                <option value="smb">SMB/RPC (Windows)</option>
+                                <option value="custom">自定义命令</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>延迟时间(秒)</label>
+                            <input type="number" id="shutdownTime" value="60">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名</label>
+                            <input type="text" id="shutdownAccount">
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="shutdownPassword">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>自定义命令(可选)</label>
+                        <input type="text" id="shutdownCommand" placeholder="留空使用默认命令">
+                    </div>
+                </div>
+
+                <!-- Ping检测 -->
+                <div class="form-section">
+                    <h3>📡 Ping检测</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="pingEnabled">
+                        <label for="pingEnabled" style="margin: 0;">启用Ping检测</label>
+                    </div>
+                    <div class="form-group">
+                        <label>检测间隔(秒)</label>
+                        <input type="number" id="pingInterval" value="60">
+                    </div>
+                </div>
+
+                <!-- 巴法云 -->
+                <div class="form-section">
+                    <h3>🏠 巴法云 (米家集成)</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="bemfaEnabled">
+                        <label for="bemfaEnabled" style="margin: 0;">启用巴法云</label>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>巴法UID</label>
+                            <input type="text" id="bemfaUID" placeholder="从巴法云获取">
+                        </div>
+                        <div class="form-group">
+                            <label>主题Topic</label>
+                            <input type="text" id="bemfaTopic" placeholder="设备主题名称">
+                        </div>
+                    </div>
+                    <div style="color: #666; font-size: 0.9em; padding: 10px; background: white; border-radius: 5px;">
+                        💡 提示: 巴法云可实现小爱同学语音控制。在 <a href="https://bemfa.com" target="_blank" style="color: #667eea;">bemfa.com</a> 注册获取UID
+                    </div>
+                </div>
+
+                <!-- 消息推送 -->
+                <div class="form-section">
+                    <h3>📢 消息推送</h3>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="messageEnabled">
+                        <label for="messageEnabled" style="margin: 0;">启用消息推送</label>
+                    </div>
+                </div>
+
+                <input type="hidden" id="deviceID">
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">💾 保存配置</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">❌ 取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let apiKey = localStorage.getItem('powercontrol_key');
+        let currentDeviceID = null;
+
+        // 初始化
+        if (!apiKey) {
+            showLogin();
+        } else {
+            loadDevices();
+        }
+
+        function showLogin() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+        }
+
+        function showDevices() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('devicesList').style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function logout() {
+            localStorage.removeItem('powercontrol_key');
+            location.reload();
+        }
+
+        async function login(e) {
+            e.preventDefault();
+            const key = document.getElementById('keyInput').value;
+
+            try {
+                const response = await fetch(`/device/get/main-basic?key=${key}`);
+                if (response.ok) {
+                    apiKey = key;
+                    localStorage.setItem('powercontrol_key', key);
+                    loadDevices();
+                } else {
+                    showMessage('loginMessage', 'error', 'KEY不正确，请重试');
+                }
+            } catch (error) {
+                showMessage('loginMessage', 'error', '连接失败: ' + error.message);
+            }
+        }
+
+        async function loadDevices() {
+            try {
+                const response = await fetch(`/device/get/all-brief?key=${apiKey}`);
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('powercontrol_key');
+                        showLogin();
+                        return;
+                    }
+                    throw new Error('获取设备列表失败');
+                }
+
+                const data = await response.json();
+                displayDevices(data);
+                showDevices();
+            } catch (error) {
+                showMessage('message', 'error', error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayDevices(data) {
+            const grid = document.getElementById('devicesGrid');
+            grid.innerHTML = '';
+
+            Object.keys(data).forEach(key => {
+                if (key === 'main') return;
+
+                const device = data[key];
+                const card = createDeviceCard(key, device);
+                grid.appendChild(card);
+            });
+
+            if (grid.children.length === 0) {
+                grid.innerHTML = '<p style="color: white; text-align: center; grid-column: 1/-1; font-size: 1.2em;">暂无设备，点击右上角添加设备</p>';
+            }
+        }
+
+        function createDeviceCard(id, device) {
+            const card = document.createElement('div');
+            card.className = 'device-card';
+
+            const statusClass = device.status && device.status[0] === 'online' ? 'status-online' :
+                               device.status && device.status[0] === 'offline' ? 'status-offline' : 'status-unknown';
+            const statusText = device.status && device.status[0] === 'online' ? '🟢 在线' :
+                              device.status && device.status[0] === 'offline' ? '🔴 离线' : '⚪ 未知';
+
+            card.innerHTML = `
+                <div class="device-name">${device.name || '未命名设备'}</div>
+                <div class="device-info">
+                    <div>📍 IP: ${device.ip || '未设置'}</div>
+                    <div>🏷️ 别名: ${device.alias || '无'}</div>
+                </div>
+                <div class="device-status ${statusClass}">${statusText}</div>
+                <div class="device-actions">
+                    <button class="btn btn-success" onclick="wakeDevice('${id}')" ${!device.enabled ? 'disabled' : ''}>
+                        ⚡ 开机
+                    </button>
+                    <button class="btn btn-danger" onclick="shutdownDevice('${id}')" ${!device.enabled ? 'disabled' : ''}>
+                        🔌 关机
+                    </button>
+                    <button class="btn btn-secondary" onclick="pingDevice('${id}')" ${!device.enabled ? 'disabled' : ''}>
+                        📡 检测
+                    </button>
+                    <button class="btn btn-warning" onclick="editDevice('${id}')">
+                        ⚙️ 配置
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteDevice('${id}')">
+                        🗑️ 删除
+                    </button>
+                </div>
+            `;
+
+            return card;
+        }
+
+        async function wakeDevice(deviceId) {
+            try {
+                showMessage('message', 'success', '正在发送唤醒指令...');
+                const response = await fetch(`/wol/${deviceId}?key=${apiKey}`);
+                const result = await response.json();
+
+                if (result.message === 'success') {
+                    showMessage('message', 'success', `✅ ${result.device_name} 唤醒指令已发送`);
+                } else {
+                    showMessage('message', 'error', `❌ ${result.message_cn || '操作失败'}`);
+                }
+
+                setTimeout(loadDevices, 2000);
+            } catch (error) {
+                showMessage('message', 'error', '操作失败: ' + error.message);
+            }
+        }
+
+        async function shutdownDevice(deviceId) {
+            if (!confirm('确认要关闭此设备吗？')) return;
+
+            try {
+                showMessage('message', 'success', '正在发送关机指令...');
+                const response = await fetch(`/shutdown/${deviceId}?key=${apiKey}`);
+                const result = await response.json();
+
+                if (result.message === 'success') {
+                    showMessage('message', 'success', `✅ ${result.device_name} 关机指令已发送`);
+                } else {
+                    showMessage('message', 'error', `❌ ${result.message_cn || '操作失败'}`);
+                }
+
+                setTimeout(loadDevices, 2000);
+            } catch (error) {
+                showMessage('message', 'error', '操作失败: ' + error.message);
+            }
+        }
+
+        async function pingDevice(deviceId) {
+            try {
+                const response = await fetch(`/ping/${deviceId}?key=${apiKey}`);
+                const result = await response.json();
+                showMessage('message', 'success',
+                    `设备: ${result.device_name}\nIP: ${result.device_ip}\n状态: ${result.device_status_cn}`);
+                loadDevices();
+            } catch (error) {
+                showMessage('message', 'error', '检测失败: ' + error.message);
+            }
+        }
+
+        async function showAddDevice() {
+            currentDeviceID = null;
+            document.getElementById('modalTitle').textContent = '➕ 添加设备';
+            document.getElementById('deviceForm').reset();
+            document.getElementById('deviceID').value = '';
+
+            // 设置默认值
+            document.getElementById('deviceEnabled').checked = true;
+            document.getElementById('wolEnabled').checked = true;
+            document.getElementById('wolPort').value = '9';
+            document.getElementById('wolDestination').value = 'broadcast_ip_global';
+            document.getElementById('wolInterface').value = 'default';
+            document.getElementById('shutdownTime').value = '60';
+            document.getElementById('shutdownMethod').value = 'ssh';
+            document.getElementById('pingEnabled').checked = true;
+            document.getElementById('pingInterval').value = '60';
+
+            document.getElementById('deviceModal').style.display = 'block';
+        }
+
+        async function editDevice(deviceId) {
+            try {
+                const response = await fetch(`/device/get/${deviceId}?key=${apiKey}`);
+                const data = await response.json();
+                const device = data.device_yaml;
+
+                currentDeviceID = deviceId;
+                document.getElementById('modalTitle').textContent = '⚙️ 编辑设备';
+                document.getElementById('deviceID').value = deviceId;
+
+                // 基本信息
+                document.getElementById('deviceName').value = device.name || '';
+                document.getElementById('deviceAlias').value = device.alias || '';
+                document.getElementById('deviceIP').value = device.ip || '';
+                document.getElementById('deviceEnabled').checked = device.enabled || false;
+
+                // WOL
+                document.getElementById('wolEnabled').checked = device.wol?.enabled || false;
+                document.getElementById('wolMAC').value = device.wol?.mac || '';
+                document.getElementById('wolPort').value = device.wol?.port || 9;
+                document.getElementById('wolDestination').value = device.wol?.destination || 'broadcast_ip_global';
+                document.getElementById('wolInterface').value = device.wol?.interface || 'default';
+
+                // Shutdown
+                document.getElementById('shutdownEnabled').checked = device.shutdown?.enabled || false;
+                document.getElementById('shutdownMethod').value = device.shutdown?.method || 'ssh';
+                document.getElementById('shutdownTime').value = device.shutdown?.time || 60;
+                document.getElementById('shutdownAccount').value = device.shutdown?.account || '';
+                document.getElementById('shutdownPassword').value = device.shutdown?.password || '';
+                document.getElementById('shutdownCommand').value = device.shutdown?.command || '';
+
+                // Ping
+                document.getElementById('pingEnabled').checked = device.ping?.enabled || false;
+                document.getElementById('pingInterval').value = device.ping?.interval || 60;
+
+                // Bemfa
+                document.getElementById('bemfaEnabled').checked = device.bemfa?.enabled || false;
+                document.getElementById('bemfaUID').value = device.bemfa?.uid || '';
+                document.getElementById('bemfaTopic').value = device.bemfa?.topic || '';
+
+                // Message
+                document.getElementById('messageEnabled').checked = device.message?.enabled || false;
+
+                document.getElementById('deviceModal').style.display = 'block';
+            } catch (error) {
+                showMessage('message', 'error', '加载设备配置失败: ' + error.message);
+            }
+        }
+
+        async function saveDevice(e) {
+            e.preventDefault();
+
+            const deviceData = {
+                id: document.getElementById('deviceID').value || `device_${Date.now()}`,
+                name: document.getElementById('deviceName').value,
+                alias: document.getElementById('deviceAlias').value,
+                ip: document.getElementById('deviceIP').value,
+                enabled: document.getElementById('deviceEnabled').checked,
+                wol: {
+                    enabled: document.getElementById('wolEnabled').checked,
+                    mac: document.getElementById('wolMAC').value,
+                    destination: document.getElementById('wolDestination').value,
+                    port: parseInt(document.getElementById('wolPort').value),
+                    interface: document.getElementById('wolInterface').value
+                },
+                shutdown: {
+                    enabled: document.getElementById('shutdownEnabled').checked,
+                    method: document.getElementById('shutdownMethod').value,
+                    account: document.getElementById('shutdownAccount').value,
+                    password: document.getElementById('shutdownPassword').value,
+                    command: document.getElementById('shutdownCommand').value,
+                    time: parseInt(document.getElementById('shutdownTime').value),
+                    timeout: 2
+                },
+                ping: {
+                    enabled: document.getElementById('pingEnabled').checked,
+                    interval: parseInt(document.getElementById('pingInterval').value)
+                },
+                bemfa: {
+                    enabled: document.getElementById('bemfaEnabled').checked,
+                    uid: document.getElementById('bemfaUID').value,
+                    topic: document.getElementById('bemfaTopic').value
+                },
+                message: {
+                    enabled: document.getElementById('messageEnabled').checked
+                }
+            };
+
+            try {
+                const url = currentDeviceID
+                    ? `/device/update/${currentDeviceID}?key=${apiKey}`
+                    : `/device/new?key=${apiKey}`;
+
+                const method = currentDeviceID ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(deviceData)
+                });
+
+                const result = await response.json();
+
+                if (result.result) {
+                    showMessage('modalMessage', 'success', '✅ 保存成功');
+                    setTimeout(() => {
+                        closeModal();
+                        loadDevices();
+                    }, 1000);
+                } else {
+                    showMessage('modalMessage', 'error', '❌ 保存失败: ' + result.message);
+                }
+            } catch (error) {
+                showMessage('modalMessage', 'error', '❌ 保存失败: ' + error.message);
+            }
+        }
+
+        async function deleteDevice(deviceId) {
+            if (!confirm('确认要删除此设备吗？此操作不可恢复！')) return;
+
+            try {
+                const response = await fetch(`/device/delete/${deviceId}?key=${apiKey}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.result) {
+                    showMessage('message', 'success', '✅ 设备已删除');
+                    loadDevices();
+                } else {
+                    showMessage('message', 'error', '❌ 删除失败: ' + result.message);
+                }
+            } catch (error) {
+                showMessage('message', 'error', '❌ 删除失败: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('deviceModal').style.display = 'none';
+            document.getElementById('modalMessage').style.display = 'none';
+        }
+
+        function showMessage(elementId, type, text) {
+            const messageEl = document.getElementById(elementId);
+            messageEl.className = `message ${type}`;
+            messageEl.textContent = text;
+            messageEl.style.display = 'block';
+
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // 自动刷新设备状态
+        setInterval(() => {
+            if (apiKey && document.getElementById('devicesList').style.display !== 'none') {
+                loadDevices();
+            }
+        }, 30000);
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('deviceModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

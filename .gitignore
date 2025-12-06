@@ -1,0 +1,38 @@
+.git/
+.idea/
+.vscode/
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Go 编译产物
+/powercontrol
+*.exe
+*.test
+*.out
+dist/
+vendor/
+
+# 数据目录
+data/
+!app/data/.gitkeep
+
+# Python 相关（保留原版本）
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+
+# 临时文件
+*.tmp
+*.bak
+*.backup
+.history/
+.spec-workflow
+.vscode
