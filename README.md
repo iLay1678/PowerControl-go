@@ -73,8 +73,8 @@ git clone https://github.com/iLay1678/PowerControl-go.git
 cd PowerControl-go
 
 # 编译并运行
-make build
-make run
+go mod download
+go build -o powercontrol ./cmd/powercontrol
 
 # 或使用 Docker 构建
 make docker

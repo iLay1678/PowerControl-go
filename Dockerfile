@@ -16,8 +16,17 @@ RUN go mod download && go mod verify
 # 复制源代码
 COPY . .
 
+# 验证代码
+RUN go vet ./...
+
 # 编译
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o powercontrol ./cmd/powercontrol
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags="-s -w" \
+    -o powercontrol \
+    ./cmd/powercontrol
+
+# 验证二进制文件
+RUN test -f powercontrol && echo "Build successful" || (echo "Build failed" && exit 1)
 
 # 运行阶段
 FROM alpine:latest

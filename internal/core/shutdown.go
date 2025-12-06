@@ -23,7 +23,7 @@ func Shutdown(ip, method, account, password, command string, delay, timeout int)
 }
 
 // shutdownViaSSH 通过SSH关机
-func shutdownViaSSH(ip, account, password, command, delay, timeout int) (string, error) {
+func shutdownViaSSH(ip, account, password, command string, delay, timeout int) (string, error) {
 	if command == "" {
 		command = fmt.Sprintf("sleep %d && sudo shutdown -h now", delay)
 	}

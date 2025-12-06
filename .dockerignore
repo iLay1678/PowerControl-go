@@ -1,0 +1,48 @@
+# Git
+.git
+.gitignore
+.github
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Build
+*.exe
+*.dll
+*.so
+*.dylib
+powercontrol
+*.test
+*.out
+
+# Data
+data/
+*.log
+*.yaml
+*.yml
+
+# Backup
+*.bak
+*.backup
+
+# Documentation
+*.md
+!README.md
+
+# History
+.history/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any)
+node_modules/
+
+# Temporary
+tmp/
+temp/
