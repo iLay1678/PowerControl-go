@@ -45,54 +45,54 @@ type WebhookConfig struct {
 
 // Device 设备配置
 type Device struct {
-	ID       string         `yaml:"id"`
-	Name     string         `yaml:"name"`
-	Alias    string         `yaml:"alias"`
-	IP       string         `yaml:"ip"`
-	Enabled  bool           `yaml:"enabled"`
-	WOL      WOLConfig      `yaml:"wol"`
-	Shutdown ShutdownConfig `yaml:"shutdown"`
-	Ping     PingConfig     `yaml:"ping"`
-	Bemfa    BemfaConfig    `yaml:"bemfa"`
-	Message  DeviceMessage  `yaml:"message"`
+	ID       string         `yaml:"id" json:"id"`
+	Name     string         `yaml:"name" json:"name"`
+	Alias    string         `yaml:"alias" json:"alias"`
+	IP       string         `yaml:"ip" json:"ip"`
+	Enabled  bool           `yaml:"enabled" json:"enabled"`
+	WOL      WOLConfig      `yaml:"wol" json:"wol"`
+	Shutdown ShutdownConfig `yaml:"shutdown" json:"shutdown"`
+	Ping     PingConfig     `yaml:"ping" json:"ping"`
+	Bemfa    BemfaConfig    `yaml:"bemfa" json:"bemfa"`
+	Message  DeviceMessage  `yaml:"message" json:"message"`
 }
 
 // WOLConfig 网络唤醒配置
 type WOLConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	MAC       string `yaml:"mac"`
-	Netmask   string `yaml:"netmask"`   // 子网掩码，如 255.255.255.0
-	Port      int    `yaml:"port"`
-	Interface string `yaml:"interface"`
+	Enabled   bool   `yaml:"enabled" json:"enabled"`
+	MAC       string `yaml:"mac" json:"mac"`
+	Netmask   string `yaml:"netmask" json:"netmask"`   // 子网掩码，如 255.255.255.0
+	Port      int    `yaml:"port" json:"port"`
+	Interface string `yaml:"interface" json:"interface"`
 }
 
 // ShutdownConfig 关机配置
 type ShutdownConfig struct {
-	Enabled  bool   `yaml:"enabled"`
-	Method   string `yaml:"method"` // ssh, smb
-	Account  string `yaml:"account"`
-	Password string `yaml:"password"`
-	Command  string `yaml:"command"`
-	Time     int    `yaml:"time"`
-	Timeout  int    `yaml:"timeout"`
+	Enabled  bool   `yaml:"enabled" json:"enabled"`
+	Method   string `yaml:"method" json:"method"` // ssh, smb
+	Account  string `yaml:"account" json:"account"`
+	Password string `yaml:"password" json:"password"`
+	Command  string `yaml:"command" json:"command"`
+	Time     int    `yaml:"time" json:"time"`
+	Timeout  int    `yaml:"timeout" json:"timeout"`
 }
 
 // PingConfig Ping配置
 type PingConfig struct {
-	Enabled  bool `yaml:"enabled"`
-	Interval int  `yaml:"interval"` // 秒
+	Enabled  bool `yaml:"enabled" json:"enabled"`
+	Interval int  `yaml:"interval" json:"interval"` // 秒
 }
 
 // BemfaConfig 巴法云配置
 type BemfaConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	UID     string `yaml:"uid"`
-	Topic   string `yaml:"topic"`
+	Enabled bool   `yaml:"enabled" json:"enabled"`
+	UID     string `yaml:"uid" json:"uid"`
+	Topic   string `yaml:"topic" json:"topic"`
 }
 
 // DeviceMessage 设备消息配置
 type DeviceMessage struct {
-	Enabled bool `yaml:"enabled"`
+	Enabled bool `yaml:"enabled" json:"enabled"`
 }
 
 var (
