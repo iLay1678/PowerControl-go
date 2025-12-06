@@ -7,7 +7,6 @@ import (
 	"powercontrol/internal/config"
 	"powercontrol/internal/core"
 	"powercontrol/internal/logger"
-	"powercontrol/internal/messenger"
 	"sync"
 	"time"
 
@@ -20,7 +19,6 @@ type DeviceService struct {
 	device      *config.Device
 	cfg         *config.Config
 	log         *zap.SugaredLogger
-	messenger   *messenger.Messenger
 	bemfaClient *bemfa.Client
 	cron        *cron.Cron
 	cancel      context.CancelFunc
@@ -32,12 +30,11 @@ type DeviceService struct {
 // NewDeviceService 创建设备服务
 func NewDeviceService(device *config.Device, cfg *config.Config) *DeviceService {
 	return &DeviceService{
-		device:    device,
-		cfg:       cfg,
-		log:       logger.GetLogger(fmt.Sprintf("device_%s", device.Name)),
-		messenger: messenger.New(&cfg.Message),
-		cron:      cron.New(),
-		status:    "unknown",
+		device: device,
+		cfg:    cfg,
+		log:    logger.GetLogger(fmt.Sprintf("device_%s", device.Name)),
+		cron:   cron.New(),
+		status: "unknown",
 	}
 }
 
@@ -139,21 +136,13 @@ func (s *DeviceService) checkStatus() {
 
 	s.SetStatus(newStatus)
 
-	// 状态变化时发送通知
+	// 状态变化时记录日志
 	if oldStatus != newStatus && oldStatus != "unknown" {
 		statusText := map[string]string{
 			"online":  "在线",
 			"offline": "离线",
 		}
 		s.log.Infof("设备状态变化: %s -> %s", statusText[oldStatus], statusText[newStatus])
-
-		if s.device.Message.Enabled {
-			s.messenger.SendAsync(
-				fmt.Sprintf("[%s] 状态变更", s.device.Name),
-				fmt.Sprintf("设备状态: %s\nIP: %s\n时间: %s",
-					statusText[newStatus], s.device.IP, time.Now().Format("2006-01-02 15:04:05")),
-			)
-		}
 	}
 }
 
@@ -222,23 +211,10 @@ func (s *DeviceService) WakeUp() error {
 
 	if err != nil {
 		s.log.Errorf("唤醒失败: %v", err)
-		if s.device.Message.Enabled {
-			s.messenger.SendAsync(
-				fmt.Sprintf("[%s] 唤醒失败", s.device.Name),
-				fmt.Sprintf("错误: %v", err),
-			)
-		}
 		return err
 	}
 
 	s.log.Info("唤醒指令已发送")
-	if s.device.Message.Enabled {
-		s.messenger.SendAsync(
-			fmt.Sprintf("[%s] 唤醒指令已发送", s.device.Name),
-			fmt.Sprintf("MAC: %s\n时间: %s", s.device.WOL.MAC, time.Now().Format("2006-01-02 15:04:05")),
-		)
-	}
-
 	return nil
 }
 
@@ -262,23 +238,10 @@ func (s *DeviceService) Shutdown() error {
 
 	if err != nil {
 		s.log.Errorf("关机失败: %v, 输出: %s", err, result)
-		if s.device.Message.Enabled {
-			s.messenger.SendAsync(
-				fmt.Sprintf("[%s] 关机失败", s.device.Name),
-				fmt.Sprintf("错误: %v\n输出: %s", err, result),
-			)
-		}
 		return err
 	}
 
 	s.log.Infof("关机指令已发送: %s", result)
-	if s.device.Message.Enabled {
-		s.messenger.SendAsync(
-			fmt.Sprintf("[%s] 关机指令已发送", s.device.Name),
-			fmt.Sprintf("结果: %s\n时间: %s", result, time.Now().Format("2006-01-02 15:04:05")),
-		)
-	}
-
 	return nil
 }
 

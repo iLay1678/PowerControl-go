@@ -181,40 +181,22 @@ func (s *Server) handleGetDevice(c *gin.Context) {
 
 // handleNewDevice 创建新设备
 func (s *Server) handleNewDevice(c *gin.Context) {
-	// 生成设备ID
-	deviceID := "device_" + uuid.New().String()[:8]
-
-	// 创建默认设备配置
-	device := &config.Device{
-		ID:      deviceID,
-		Name:    "新设备",
-		Enabled: false,
-		WOL: config.WOLConfig{
-			Enabled:     true,
-			Destination: "broadcast_ip_global",
-			Port:        9,
-			Interface:   "default",
-		},
-		Shutdown: config.ShutdownConfig{
-			Enabled: false,
-			Method:  "ssh",
-			Time:    60,
-			Timeout: 2,
-		},
-		Ping: config.PingConfig{
-			Enabled:  true,
-			Interval: 60,
-		},
-		Bemfa: config.BemfaConfig{
-			Enabled: false,
-		},
-		Message: config.DeviceMessage{
-			Enabled: false,
-		},
+	// 接收请求数据
+	var device config.Device
+	if err := c.ShouldBindJSON(&device); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"result":    false,
+			"device_id": "",
+			"message":   "无效的请求数据: " + err.Error(),
+		})
+		return
 	}
 
+	// 生成设备ID
+	device.ID = "device_" + uuid.New().String()[:8]
+
 	// 添加设备
-	if err := s.svcMgr.AddDevice(device); err != nil {
+	if err := s.svcMgr.AddDevice(&device); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"result":    false,
 			"device_id": "",
@@ -225,7 +207,7 @@ func (s *Server) handleNewDevice(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"result":    true,
-		"device_id": deviceID,
+		"device_id": device.ID,
 	})
 }
 
@@ -242,6 +224,9 @@ func (s *Server) handleUpdateDevice(c *gin.Context) {
 		return
 	}
 
+	// 确保设备ID一致
+	device.ID = deviceID
+
 	// 保存配置
 	if err := config.SaveDevice(&device); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -249,6 +234,24 @@ func (s *Server) handleUpdateDevice(c *gin.Context) {
 			"message": err.Error(),
 		})
 		return
+	}
+
+	// 重新加载配置
+	cfg, err := config.Load()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"result":  false,
+			"message": "重新加载配置失败: " + err.Error(),
+		})
+		return
+	}
+	s.cfg = cfg
+
+	// 重启设备服务以应用新配置
+	if s.svcMgr.IsRunning(deviceID) {
+		if err := s.svcMgr.RestartDevice(deviceID); err != nil {
+			s.log.Warnf("重启设备服务失败: %v", err)
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
