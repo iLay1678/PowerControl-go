@@ -54,7 +54,7 @@ type Device struct {
 	Shutdown ShutdownConfig `yaml:"shutdown" json:"shutdown"`
 	Ping     PingConfig     `yaml:"ping" json:"ping"`
 	Bemfa    BemfaConfig    `yaml:"bemfa" json:"bemfa"`
-	Message  DeviceMessage  `yaml:"message" json:"message"`
+	Message  DeviceMessage  `yaml:"message,omitempty" json:"message,omitempty"` // 已废弃，保留用于兼容
 }
 
 // WOLConfig 网络唤醒配置

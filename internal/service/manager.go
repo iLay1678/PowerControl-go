@@ -225,3 +225,11 @@ func (m *Manager) RemoveDevice(deviceID string) error {
 	m.log.Infof("设备已删除: %s", deviceID)
 	return nil
 }
+
+// UpdateConfig 更新配置
+func (m *Manager) UpdateConfig(cfg *config.Config) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.cfg = cfg
+	m.log.Info("配置已更新")
+}

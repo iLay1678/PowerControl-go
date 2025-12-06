@@ -251,6 +251,9 @@ func (s *Server) handleUpdateDevice(c *gin.Context) {
 	}
 	s.cfg = cfg
 
+	// 更新 Manager 的配置引用
+	s.svcMgr.UpdateConfig(cfg)
+
 	// 重启设备服务以应用新配置
 	if s.svcMgr.IsRunning(deviceID) {
 		if err := s.svcMgr.RestartDevice(deviceID); err != nil {
