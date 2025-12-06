@@ -11,21 +11,21 @@ RUN apk add --no-cache git
 COPY go.mod go.sum ./
 
 # 下载依赖
-RUN go mod download
+RUN go mod download && go mod verify
 
 # 复制源代码
 COPY . .
 
 # 编译
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o powercontrol ./cmd/powercontrol
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o powercontrol ./cmd/powercontrol
 
 # 运行阶段
 FROM alpine:latest
 
 # 信息
 LABEL name="PowerControl-Go" \
-      maintainer="viklion" \
-      github="https://github.com/viklion/PowerControl" \
+      maintainer="iLay1678" \
+      github="https://github.com/iLay1678/PowerControl-go" \
       version="4.0.0"
 
 # 安装运行时依赖
@@ -42,6 +42,9 @@ WORKDIR /app
 # 从构建阶段复制编译好的二进制文件
 COPY --from=builder /build/powercontrol /app/
 
+# 复制 web 静态文件
+COPY --from=builder /build/web /app/web
+
 # 创建数据目录
 RUN mkdir -p /app/data /app/default
 
@@ -51,9 +54,8 @@ ENV TZ=Asia/Shanghai
 # 版本号
 ENV VERSION=4.0.0
 
-# 默认环境变量
+# 默认配置（非敏感信息）
 ENV WEB_PORT=7678
-ENV WEB_KEY=admin
 ENV DATA_DIR=/app/data
 
 # 暴露端口

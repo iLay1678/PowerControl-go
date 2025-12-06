@@ -83,12 +83,14 @@ make docker-run
 
 ## 🔧 环境变量
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `WEB_PORT` | Web 服务端口 | `7678` |
-| `WEB_KEY` | API 访问密钥 | `admin` |
-| `DATA_DIR` | 数据目录路径 | `/app/data` |
-| `TZ` | 时区设置 | `Asia/Shanghai` |
+| 变量 | 说明 | 默认值 | 备注 |
+|------|------|--------|------|
+| `WEB_PORT` | Web 服务端口 | `7678` | - |
+| `WEB_KEY` | API 访问密钥 | `admin` | ⚠️ **生产环境必须修改** |
+| `DATA_DIR` | 数据目录路径 | `/app/data` | - |
+| `TZ` | 时区设置 | `Asia/Shanghai` | - |
+
+> ⚠️ **安全提示**: `WEB_KEY` 默认值为 `admin`，请在生产环境中通过环境变量设置为强密码！
 
 ## 📖 使用文档
 
@@ -236,19 +238,11 @@ docker run -d \
 - ✅ Docker (推荐)
 - ✅ Kubernetes
 - ✅ Linux 二进制
-- ✅ 群晖 DSM - [教程](DSM.md)
-- ✅ UNRAID - [教程](UNRAID.md)
-- ✅ 飞牛 FNOS - [教程](FNOS.md)
-- ✅ iStoreOS - [教程](iStoreOS.md)
+- ✅ 群晖 DSM 
+- ✅ UNRAID 
+- ✅ 飞牛 FNOS 
+- ✅ iStoreOS 
 
-## 📚 相关文档
-
-- [完整部署教程 - Bilibili](https://www.bilibili.com/video/BV1cykZY7Er9)
-- [配置文件说明 - YAML.md](YAML.md)
-- [群晖部署教程 - DSM.md](DSM.md)
-- [UNRAID教程 - UNRAID.md](UNRAID.md)
-- [飞牛教程 - FNOS.md](FNOS.md)
-- [iStoreOS教程 - iStoreOS.md](iStoreOS.md)
 
 ## 🔐 安全建议
 
