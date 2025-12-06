@@ -123,7 +123,7 @@ func (s *DeviceService) pingLoop(ctx context.Context, interval time.Duration) {
 func (s *DeviceService) checkStatus() {
 	online, err := core.Ping(s.device.IP, 3*time.Second)
 	if err != nil {
-		s.log.Debugf("Ping失败: %v", err)
+		s.log.Errorf("Ping检测失败: IP=%s, 错误=%v", s.device.IP, err)
 	}
 
 	oldStatus := s.GetStatus()
@@ -142,7 +142,7 @@ func (s *DeviceService) checkStatus() {
 			"online":  "在线",
 			"offline": "离线",
 		}
-		s.log.Infof("设备状态变化: %s -> %s", statusText[oldStatus], statusText[newStatus])
+		s.log.Infof("设备状态变化: %s -> %s (IP=%s)", statusText[oldStatus], statusText[newStatus], s.device.IP)
 	}
 }
 

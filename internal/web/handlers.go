@@ -113,6 +113,8 @@ func (s *Server) handlePing(c *gin.Context) {
 	}
 
 	device := svc.GetDevice()
+	s.log.Infof("IP=%s 访问Ping API: 设备=%s, IP=%s", clientIP, device.Name, device.IP)
+
 	status := svc.GetStatus()
 
 	statusMap := map[string]string{
@@ -120,6 +122,8 @@ func (s *Server) handlePing(c *gin.Context) {
 		"offline": "离线",
 		"unknown": "未知",
 	}
+
+	s.log.Infof("Ping检测结果: 设备=%s, 状态=%s", device.Name, statusMap[status])
 
 	c.JSON(http.StatusOK, gin.H{
 		"device_name":      device.Name,
