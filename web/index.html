@@ -294,12 +294,9 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>广播方式</label>
-                            <select id="wolDestination">
-                                <option value="broadcast_ip_global">全局广播</option>
-                                <option value="broadcast_ip_subnet">子网广播</option>
-                                <option value="direct_ip">直连设备</option>
-                            </select>
+                            <label>子网掩码</label>
+                            <input type="text" id="wolNetmask" value="255.255.255.255" placeholder="255.255.255.0">
+                            <small style="color: #666; font-size: 0.85em;">255.255.255.255 = 全局广播</small>
                         </div>
                         <div class="form-group">
                             <label>网卡接口</label>
@@ -367,8 +364,8 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>巴法UID</label>
-                            <input type="text" id="bemfaUID" placeholder="从巴法云获取">
+                            <label>巴法私钥</label>
+                            <input type="text" id="bemfaUID" placeholder="从巴法云平台获取私钥">
                         </div>
                         <div class="form-group">
                             <label>主题Topic</label>
@@ -376,16 +373,7 @@
                         </div>
                     </div>
                     <div style="color: #666; font-size: 0.9em; padding: 10px; background: white; border-radius: 5px;">
-                        💡 提示: 巴法云可实现小爱同学语音控制。在 <a href="https://bemfa.com" target="_blank" style="color: #667eea;">bemfa.com</a> 注册获取UID
-                    </div>
-                </div>
-
-                <!-- 消息推送 -->
-                <div class="form-section">
-                    <h3>📢 消息推送</h3>
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="messageEnabled">
-                        <label for="messageEnabled" style="margin: 0;">启用消息推送</label>
+                        💡 提示: 巴法云可实现小爱同学语音控制。在 <a href="https://bemfa.com" target="_blank" style="color: #667eea;">bemfa.com</a> 注册获取私钥
                     </div>
                 </div>
 
@@ -523,17 +511,23 @@
             try {
                 showMessage('message', 'success', '正在发送唤醒指令...');
                 const response = await fetch(`/wol/${deviceId}?key=${apiKey}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const result = await response.json();
 
                 if (result.message === 'success') {
                     showMessage('message', 'success', `✅ ${result.device_name} 唤醒指令已发送`);
                 } else {
-                    showMessage('message', 'error', `❌ ${result.message_cn || '操作失败'}`);
+                    const errorMsg = result.message_cn || result.message || result.result || '操作失败';
+                    showMessage('message', 'error', `❌ ${errorMsg}`);
                 }
 
                 setTimeout(loadDevices, 2000);
             } catch (error) {
-                showMessage('message', 'error', '操作失败: ' + error.message);
+                showMessage('message', 'error', '❌ 操作失败: ' + error.message);
             }
         }
 
@@ -543,29 +537,40 @@
             try {
                 showMessage('message', 'success', '正在发送关机指令...');
                 const response = await fetch(`/shutdown/${deviceId}?key=${apiKey}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const result = await response.json();
 
                 if (result.message === 'success') {
                     showMessage('message', 'success', `✅ ${result.device_name} 关机指令已发送`);
                 } else {
-                    showMessage('message', 'error', `❌ ${result.message_cn || '操作失败'}`);
+                    const errorMsg = result.message_cn || result.message || result.result || '操作失败';
+                    showMessage('message', 'error', `❌ ${errorMsg}`);
                 }
 
                 setTimeout(loadDevices, 2000);
             } catch (error) {
-                showMessage('message', 'error', '操作失败: ' + error.message);
+                showMessage('message', 'error', '❌ 操作失败: ' + error.message);
             }
         }
 
         async function pingDevice(deviceId) {
             try {
                 const response = await fetch(`/ping/${deviceId}?key=${apiKey}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const result = await response.json();
                 showMessage('message', 'success',
-                    `设备: ${result.device_name}\nIP: ${result.device_ip}\n状态: ${result.device_status_cn}`);
+                    `📡 设备: ${result.device_name}\nIP: ${result.device_ip}\n状态: ${result.device_status_cn}`);
                 loadDevices();
             } catch (error) {
-                showMessage('message', 'error', '检测失败: ' + error.message);
+                showMessage('message', 'error', '❌ 检测失败: ' + error.message);
             }
         }
 
@@ -579,7 +584,7 @@
             document.getElementById('deviceEnabled').checked = true;
             document.getElementById('wolEnabled').checked = true;
             document.getElementById('wolPort').value = '9';
-            document.getElementById('wolDestination').value = 'broadcast_ip_global';
+            document.getElementById('wolNetmask').value = '255.255.255.255';
             document.getElementById('wolInterface').value = 'default';
             document.getElementById('shutdownTime').value = '60';
             document.getElementById('shutdownMethod').value = 'ssh';
@@ -592,7 +597,17 @@
         async function editDevice(deviceId) {
             try {
                 const response = await fetch(`/device/get/${deviceId}?key=${apiKey}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
+
+                if (!data.device_yaml) {
+                    throw new Error('设备数据格式错误');
+                }
+
                 const device = data.device_yaml;
 
                 currentDeviceID = deviceId;
@@ -606,35 +621,40 @@
                 document.getElementById('deviceEnabled').checked = device.enabled || false;
 
                 // WOL
-                document.getElementById('wolEnabled').checked = device.wol?.enabled || false;
-                document.getElementById('wolMAC').value = device.wol?.mac || '';
-                document.getElementById('wolPort').value = device.wol?.port || 9;
-                document.getElementById('wolDestination').value = device.wol?.destination || 'broadcast_ip_global';
-                document.getElementById('wolInterface').value = device.wol?.interface || 'default';
+                if (device.wol) {
+                    document.getElementById('wolEnabled').checked = device.wol.enabled || false;
+                    document.getElementById('wolMAC').value = device.wol.mac || '';
+                    document.getElementById('wolPort').value = device.wol.port || 9;
+                    document.getElementById('wolNetmask').value = device.wol.netmask || '255.255.255.255';
+                    document.getElementById('wolInterface').value = device.wol.interface || 'default';
+                }
 
                 // Shutdown
-                document.getElementById('shutdownEnabled').checked = device.shutdown?.enabled || false;
-                document.getElementById('shutdownMethod').value = device.shutdown?.method || 'ssh';
-                document.getElementById('shutdownTime').value = device.shutdown?.time || 60;
-                document.getElementById('shutdownAccount').value = device.shutdown?.account || '';
-                document.getElementById('shutdownPassword').value = device.shutdown?.password || '';
-                document.getElementById('shutdownCommand').value = device.shutdown?.command || '';
+                if (device.shutdown) {
+                    document.getElementById('shutdownEnabled').checked = device.shutdown.enabled || false;
+                    document.getElementById('shutdownMethod').value = device.shutdown.method || 'ssh';
+                    document.getElementById('shutdownTime').value = device.shutdown.time || 60;
+                    document.getElementById('shutdownAccount').value = device.shutdown.account || '';
+                    document.getElementById('shutdownPassword').value = device.shutdown.password || '';
+                    document.getElementById('shutdownCommand').value = device.shutdown.command || '';
+                }
 
                 // Ping
-                document.getElementById('pingEnabled').checked = device.ping?.enabled || false;
-                document.getElementById('pingInterval').value = device.ping?.interval || 60;
+                if (device.ping) {
+                    document.getElementById('pingEnabled').checked = device.ping.enabled || false;
+                    document.getElementById('pingInterval').value = device.ping.interval || 60;
+                }
 
                 // Bemfa
-                document.getElementById('bemfaEnabled').checked = device.bemfa?.enabled || false;
-                document.getElementById('bemfaUID').value = device.bemfa?.uid || '';
-                document.getElementById('bemfaTopic').value = device.bemfa?.topic || '';
-
-                // Message
-                document.getElementById('messageEnabled').checked = device.message?.enabled || false;
+                if (device.bemfa) {
+                    document.getElementById('bemfaEnabled').checked = device.bemfa.enabled || false;
+                    document.getElementById('bemfaUID').value = device.bemfa.uid || '';
+                    document.getElementById('bemfaTopic').value = device.bemfa.topic || '';
+                }
 
                 document.getElementById('deviceModal').style.display = 'block';
             } catch (error) {
-                showMessage('message', 'error', '加载设备配置失败: ' + error.message);
+                showMessage('message', 'error', '❌ 加载设备配置失败: ' + error.message);
             }
         }
 
@@ -650,7 +670,7 @@
                 wol: {
                     enabled: document.getElementById('wolEnabled').checked,
                     mac: document.getElementById('wolMAC').value,
-                    destination: document.getElementById('wolDestination').value,
+                    netmask: document.getElementById('wolNetmask').value,
                     port: parseInt(document.getElementById('wolPort').value),
                     interface: document.getElementById('wolInterface').value
                 },
@@ -671,9 +691,6 @@
                     enabled: document.getElementById('bemfaEnabled').checked,
                     uid: document.getElementById('bemfaUID').value,
                     topic: document.getElementById('bemfaTopic').value
-                },
-                message: {
-                    enabled: document.getElementById('messageEnabled').checked
                 }
             };
 
@@ -682,7 +699,7 @@
                     ? `/device/update/${currentDeviceID}?key=${apiKey}`
                     : `/device/new?key=${apiKey}`;
 
-                const method = currentDeviceID ? 'PUT' : 'POST';
+                const method = currentDeviceID ? 'POST' : 'POST';
 
                 const response = await fetch(url, {
                     method: method,
@@ -692,16 +709,22 @@
                     body: JSON.stringify(deviceData)
                 });
 
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
                 const result = await response.json();
 
-                if (result.result) {
+                if (result.result === true) {
                     showMessage('modalMessage', 'success', '✅ 保存成功');
                     setTimeout(() => {
                         closeModal();
                         loadDevices();
                     }, 1000);
                 } else {
-                    showMessage('modalMessage', 'error', '❌ 保存失败: ' + result.message);
+                    const errorMsg = result.message || '未知错误';
+                    showMessage('modalMessage', 'error', '❌ 保存失败: ' + errorMsg);
                 }
             } catch (error) {
                 showMessage('modalMessage', 'error', '❌ 保存失败: ' + error.message);
@@ -716,13 +739,19 @@
                     method: 'DELETE'
                 });
 
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
                 const result = await response.json();
 
-                if (result.result) {
+                if (result.result === true) {
                     showMessage('message', 'success', '✅ 设备已删除');
                     loadDevices();
                 } else {
-                    showMessage('message', 'error', '❌ 删除失败: ' + result.message);
+                    const errorMsg = result.message || '删除失败';
+                    showMessage('message', 'error', '❌ ' + errorMsg);
                 }
             } catch (error) {
                 showMessage('message', 'error', '❌ 删除失败: ' + error.message);

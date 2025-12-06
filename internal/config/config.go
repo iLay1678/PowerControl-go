@@ -59,11 +59,11 @@ type Device struct {
 
 // WOLConfig 网络唤醒配置
 type WOLConfig struct {
-	Enabled     bool   `yaml:"enabled"`
-	MAC         string `yaml:"mac"`
-	Destination string `yaml:"destination"` // broadcast_ip_global, broadcast_ip_direct, device_ip
-	Port        int    `yaml:"port"`
-	Interface   string `yaml:"interface"`
+	Enabled   bool   `yaml:"enabled"`
+	MAC       string `yaml:"mac"`
+	Netmask   string `yaml:"netmask"`   // 子网掩码，如 255.255.255.0
+	Port      int    `yaml:"port"`
+	Interface string `yaml:"interface"`
 }
 
 // ShutdownConfig 关机配置

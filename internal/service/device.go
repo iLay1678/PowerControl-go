@@ -204,7 +204,8 @@ func (s *DeviceService) WakeUp() error {
 
 	err := core.WakeOnLAN(
 		s.device.WOL.MAC,
-		s.device.WOL.Destination,
+		s.device.WOL.Netmask,
+		s.device.IP,
 		s.device.WOL.Port,
 		s.device.WOL.Interface,
 	)

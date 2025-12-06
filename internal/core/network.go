@@ -9,7 +9,7 @@ import (
 )
 
 // WakeOnLAN 发送网络唤醒魔术包
-func WakeOnLAN(mac, destination string, port int, iface string) error {
+func WakeOnLAN(mac, netmask, deviceIP string, port int, iface string) error {
 	// 解析MAC地址
 	macAddr, err := parseMAC(mac)
 	if err != nil {
@@ -19,10 +19,10 @@ func WakeOnLAN(mac, destination string, port int, iface string) error {
 	// 构造魔术包
 	packet := buildMagicPacket(macAddr)
 
-	// 解析目标地址
-	destAddr, err := getDestination(destination, port)
+	// 计算广播地址
+	destAddr, err := getBroadcastAddr(deviceIP, netmask, port)
 	if err != nil {
-		return fmt.Errorf("无法解析目标地址: %w", err)
+		return fmt.Errorf("无法计算广播地址: %w", err)
 	}
 
 	// 获取网络接口
@@ -82,29 +82,40 @@ func buildMagicPacket(mac []byte) []byte {
 	return packet
 }
 
-// getDestination 获取目标地址
-func getDestination(destination string, port int) (*net.UDPAddr, error) {
-	var ip string
-
-	switch destination {
-	case "broadcast_ip_global":
-		ip = "255.255.255.255"
-	case "broadcast_ip_direct":
-		// 获取本机IP并计算广播地址
-		localIP, err := getLocalIP()
-		if err != nil {
-			return nil, err
-		}
-		ip = getBroadcastIP(localIP)
-	case "device_ip":
-		// 这种情况下应该传入具体的IP
-		return nil, fmt.Errorf("需要指定设备IP地址")
-	default:
-		// 直接使用传入的IP
-		ip = destination
+// getBroadcastAddr 根据设备IP和子网掩码计算广播地址
+func getBroadcastAddr(deviceIP, netmask string, port int) (*net.UDPAddr, error) {
+	// 如果未指定掩码，使用全局广播
+	if netmask == "" || netmask == "255.255.255.255" {
+		return net.ResolveUDPAddr("udp", fmt.Sprintf("255.255.255.255:%d", port))
 	}
 
-	return net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", ip, port))
+	// 解析设备IP
+	ip := net.ParseIP(deviceIP)
+	if ip == nil {
+		return nil, fmt.Errorf("无效的设备IP地址: %s", deviceIP)
+	}
+	ip = ip.To4()
+	if ip == nil {
+		return nil, fmt.Errorf("仅支持IPv4地址")
+	}
+
+	// 解析子网掩码
+	mask := net.ParseIP(netmask)
+	if mask == nil {
+		return nil, fmt.Errorf("无效的子网掩码: %s", netmask)
+	}
+	mask = mask.To4()
+	if mask == nil {
+		return nil, fmt.Errorf("子网掩码必须是IPv4格式")
+	}
+
+	// 计算广播地址: IP | (~Mask)
+	broadcast := make(net.IP, 4)
+	for i := 0; i < 4; i++ {
+		broadcast[i] = ip[i] | ^mask[i]
+	}
+
+	return net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", broadcast.String(), port))
 }
 
 // getConnection 获取UDP连接
@@ -130,40 +141,6 @@ func getConnection(iface string) (*net.UDPConn, error) {
 	}
 
 	return conn, nil
-}
-
-// getLocalIP 获取本机IP
-func getLocalIP() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
-	}
-
-	for _, addr := range addrs {
-		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
-			if ipnet.IP.To4() != nil {
-				return ipnet.IP.String(), nil
-			}
-		}
-	}
-
-	return "", fmt.Errorf("未找到有效的本地IP地址")
-}
-
-// getBroadcastIP 计算广播地址
-func getBroadcastIP(ip string) string {
-	parsedIP := net.ParseIP(ip)
-	if parsedIP == nil {
-		return "255.255.255.255"
-	}
-
-	// 简单处理：假设是C类网络
-	parts := strings.Split(ip, ".")
-	if len(parts) == 4 {
-		return fmt.Sprintf("%s.%s.%s.255", parts[0], parts[1], parts[2])
-	}
-
-	return "255.255.255.255"
 }
 
 // Ping 检测设备是否在线
