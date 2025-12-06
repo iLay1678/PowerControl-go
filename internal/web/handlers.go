@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"powercontrol/internal/config"
+	"powercontrol/internal/service"
 	"strings"
 	"time"
 
